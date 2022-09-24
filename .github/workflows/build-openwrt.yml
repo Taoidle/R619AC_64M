@@ -1,9 +1,12 @@
 name: R619AC 64M LEDE
 
 on:
-  repository_dispatch:
-  schedule:
-    - cron: 30 2 */15 * *
+  push:
+    branches:
+      - master
+  # repository_dispatch:
+  # schedule:
+  #   - cron: 30 2 */15 * *
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
