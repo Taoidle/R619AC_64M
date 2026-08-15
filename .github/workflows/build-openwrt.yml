@@ -81,7 +81,7 @@ jobs:
           sed -i '/^CONFIG_KERNEL_BUILD_USER=/d; /^CONFIG_KERNEL_BUILD_DOMAIN=/d' .config
           printf '%s\n' 'CONFIG_KERNEL_BUILD_USER="Leopard"' 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >> .config
           make defconfig
-          grep -q '^CONFIG_TARGET_DEVICE_ipq40xx_generic_DEVICE_p2w_r619ac-64m=y$' .config
+          grep -q '^CONFIG_TARGET_ipq40xx_generic_DEVICE_p2w_r619ac-64m=y$' .config
 
       - name: Download packages
         working-directory: openwrt
