@@ -74,6 +74,8 @@ jobs:
           # coolsnowwolf/packages currently forces Node host tools to 32-bit while
           # Node 22 generates x86-64 V8 host sources, producing "-m64 -m32".
           # Keep the ARM target compiler unchanged and build host generators natively.
+          install -m 0644 "$GITHUB_WORKSPACE/patches/node-v22-host-tools-native-arch.patch" \
+            feeds/packages/lang/node/patches/v22.x/999-host-tools-native-arch.patch
           sed -i 's/ \$(FORCE_32BIT)//g' feeds/packages/lang/node/Makefile
           ! grep -q '\$(FORCE_32BIT)' feeds/packages/lang/node/Makefile
 

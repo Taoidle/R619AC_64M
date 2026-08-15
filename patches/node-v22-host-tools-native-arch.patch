@@ -1,0 +1,14 @@
+--- a/tools/v8_gypfiles/toolchain.gypi
++++ b/tools/v8_gypfiles/toolchain.gypi
+@@ -111,7 +111,10 @@
+       host_arch=="s390x" or \
+       clang==1', {
+       'variables': {
+-        'host_cxx_is_biarch%': 1,
++        # The host tools use x86-64 sources. Forcing biarch mode for an ARM
++        # target adds -m32 next to -m64 and makes x86-64 V8 assembly fail.
++        # Target objects still use OpenWrt's ARM cross compiler.
++        'host_cxx_is_biarch%': 0,
+        },
+      }, {
+       'variables': {
