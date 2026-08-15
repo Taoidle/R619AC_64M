@@ -61,6 +61,9 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/kenzok8/openwrt-packages.git openwrt/package/openwrt-packages
           git clone --depth 1 https://github.com/kenzok8/small.git openwrt/package/small
+          # These unused packages currently introduce recursive Kconfig dependencies.
+          rm -rf openwrt/package/small/luci-app-fchomo
+          rm -rf openwrt/package/openwrt-packages/luci-app-easymesh
 
       - name: Update and install feeds
         working-directory: openwrt
