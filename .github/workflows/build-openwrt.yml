@@ -71,6 +71,12 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+          # coolsnowwolf/packages currently forces Node host tools to 32-bit while
+          # Node 22 generates x86-64 V8 host sources, producing "-m64 -m32".
+          # Keep the ARM target compiler unchanged and build host generators natively.
+          sed -i 's/ \$(FORCE_32BIT)//g' feeds/packages/lang/node/Makefile
+          ! grep -q '\$(FORCE_32BIT)' feeds/packages/lang/node/Makefile
+
       - name: Load and validate configuration
         run: |
           cp "$CONFIG_FILE" openwrt/.config
@@ -82,6 +88,7 @@ jobs:
           printf '%s\n' 'CONFIG_KERNEL_BUILD_USER="Leopard"' 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >> .config
           make defconfig
           grep -q '^CONFIG_TARGET_ipq40xx_generic_DEVICE_p2w_r619ac-64m=y$' .config
+          grep -q '^CONFIG_NODEJS_ICU_NONE=y$' .config
 
       - name: Download packages
         working-directory: openwrt
