@@ -71,13 +71,15 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          # coolsnowwolf/packages currently forces Node host tools to 32-bit while
-          # Node 22 generates x86-64 V8 host sources, producing "-m64 -m32".
-          # Keep the ARM target compiler unchanged and build host generators natively.
-          install -m 0644 "$GITHUB_WORKSPACE/patches/node-v22-host-tools-native-arch.patch" \
-            feeds/packages/lang/node/patches/v22.x/999-host-tools-native-arch.patch
-          sed -i 's/ \$(FORCE_32BIT)//g' feeds/packages/lang/node/Makefile
-          ! grep -q '\$(FORCE_32BIT)' feeds/packages/lang/node/Makefile
+          # Node detects the host architecture from CC_host/CXX_host. FORCE_32BIT
+          # is empty in this LEDE build, so V8 otherwise selects x64 sources and only
+          # appends -m32 later. Make the host architecture IA32 from configure time.
+          sed -i \
+            -e 's|CC_host="$(HOSTCC) $(FORCE_32BIT)"|CC_host="$(HOSTCC) -m32"|' \
+            -e 's|CXX_host="$(HOSTCXX) $(FORCE_32BIT)"|CXX_host="$(HOSTCXX) -m32"|' \
+            feeds/packages/lang/node/Makefile
+          grep -Fq 'CC_host="$(HOSTCC) -m32"' feeds/packages/lang/node/Makefile
+          grep -Fq 'CXX_host="$(HOSTCXX) -m32"' feeds/packages/lang/node/Makefile
 
       - name: Load and validate configuration
         run: |
