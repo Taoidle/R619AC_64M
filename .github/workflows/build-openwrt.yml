@@ -92,7 +92,13 @@ jobs:
           printf '%s\n' 'CONFIG_KERNEL_BUILD_USER="Leopard"' 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >> .config
           make defconfig
           grep -q '^CONFIG_TARGET_ipq40xx_generic_DEVICE_p2w_r619ac-64m=y$' .config
+          grep -q '^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=1024$' .config
           grep -q '^CONFIG_NODEJS_ICU_NONE=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_luci-app-ssr-plus=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_mihomo=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_v2ray-geoip=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_kcptun-client=y$' .config
 
       - name: Download packages
         working-directory: openwrt
@@ -116,6 +122,14 @@ jobs:
           FIRMWARE_DIR="$GITHUB_WORKSPACE/openwrt/bin/targets/ipq40xx/generic"
           test -d "$FIRMWARE_DIR"
           rm -rf "$FIRMWARE_DIR/packages"
+
+          SYSUPGRADE="$(find "$FIRMWARE_DIR" -maxdepth 1 -type f -name '*sysupgrade.bin' -print -quit)"
+          test -n "$SYSUPGRADE"
+          ROOTFS_SIZE="$(tar -xOf "$SYSUPGRADE" --wildcards '*/root' | wc -c)"
+          ROOTFS_LIMIT="$((56 * 1024 * 1024))"
+          echo "Rootfs size: $ROOTFS_SIZE bytes (safety limit: $ROOTFS_LIMIT bytes)"
+          test "$ROOTFS_SIZE" -le "$ROOTFS_LIMIT"
+
           echo "FIRMWARE=$FIRMWARE_DIR" >> "$GITHUB_ENV"
 
       - name: Upload firmware artifact
