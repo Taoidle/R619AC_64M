@@ -57,6 +57,30 @@ jobs:
           ln -s /workdir/openwrt "$GITHUB_WORKSPACE/openwrt"
           echo "LEDE_COMMIT=$(git -C openwrt rev-parse HEAD)" >> "$GITHUB_ENV"
 
+      - name: Add legacy R619AC sysupgrade compatibility
+        working-directory: openwrt
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("target/linux/ipq40xx/image/generic.mk")
+          content = path.read_text()
+          marker = "define Device/p2w_r619ac-64m\n"
+          legacy = "\tSUPPORTED_DEVICES += p2w,r619ac\n"
+          start = content.find(marker)
+          if start < 0:
+              raise SystemExit("R619AC 64M device definition not found")
+          end = content.find("\nendef", start)
+          if end < 0:
+              raise SystemExit("R619AC 64M device definition is incomplete")
+          block = content[start:end]
+          if legacy not in block:
+              content = content[:start] + block.replace(marker, marker + legacy, 1) + content[end:]
+              path.write_text(content)
+          PY
+          sed -n '/^define Device\/p2w_r619ac-64m$/,/^endef$/p' \
+            target/linux/ipq40xx/image/generic.mk | grep -Fx $'\tSUPPORTED_DEVICES += p2w,r619ac'
+
       - name: Load custom packages
         run: |
           git clone --depth 1 https://github.com/kenzok8/openwrt-packages.git openwrt/package/openwrt-packages
@@ -129,6 +153,10 @@ jobs:
           ROOTFS_LIMIT="$((56 * 1024 * 1024))"
           echo "Rootfs size: $ROOTFS_SIZE bytes (safety limit: $ROOTFS_LIMIT bytes)"
           test "$ROOTFS_SIZE" -le "$ROOTFS_LIMIT"
+
+          strings "$SYSUPGRADE" | grep -Fq '"p2w,r619ac-64m"'
+          strings "$SYSUPGRADE" | grep -Fq '"p2w,r619ac"'
+          echo "Verified sysupgrade compatibility for p2w,r619ac-64m and p2w,r619ac"
 
           echo "FIRMWARE=$FIRMWARE_DIR" >> "$GITHUB_ENV"
 
