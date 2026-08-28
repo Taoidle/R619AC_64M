@@ -95,16 +95,6 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          # Node detects the host architecture from CC_host/CXX_host. FORCE_32BIT
-          # is empty in this LEDE build, so V8 otherwise selects x64 sources and only
-          # appends -m32 later. Make the host architecture IA32 from configure time.
-          sed -i \
-            -e 's|CC_host="$(HOSTCC) $(FORCE_32BIT)"|CC_host="$(HOSTCC) -m32"|' \
-            -e 's|CXX_host="$(HOSTCXX) $(FORCE_32BIT)"|CXX_host="$(HOSTCXX) -m32"|' \
-            feeds/packages/lang/node/Makefile
-          grep -Fq 'CC_host="$(HOSTCC) -m32"' feeds/packages/lang/node/Makefile
-          grep -Fq 'CXX_host="$(HOSTCXX) -m32"' feeds/packages/lang/node/Makefile
-
       - name: Load and validate configuration
         run: |
           cp "$CONFIG_FILE" openwrt/.config
@@ -117,12 +107,23 @@ jobs:
           make defconfig
           grep -q '^CONFIG_TARGET_ipq40xx_generic_DEVICE_p2w_r619ac-64m=y$' .config
           grep -q '^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=1024$' .config
-          grep -q '^CONFIG_NODEJS_ICU_NONE=y$' .config
+          grep -q '^CONFIG_PACKAGE_luci-app-openclash=y$' .config
+          grep -q '^CONFIG_PACKAGE_mihomo=y$' .config
+          grep -q '^CONFIG_PACKAGE_v2ray-geoip=y$' .config
+          grep -q '^CONFIG_PACKAGE_luci-app-minidlna=y$' .config
+          grep -q '^CONFIG_PACKAGE_luci-app-mwan3=y$' .config
+          grep -q '^CONFIG_PACKAGE_luci-app-syncdial=y$' .config
           ! grep -q '^CONFIG_PACKAGE_luci-app-ssr-plus=y$' .config
-          ! grep -q '^CONFIG_PACKAGE_mihomo=y$' .config
-          ! grep -q '^CONFIG_PACKAGE_v2ray-geoip=y$' .config
           ! grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
           ! grep -q '^CONFIG_PACKAGE_kcptun-client=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_luci-app-unblockneteasemusic=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_node=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_luci-app-frpc=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_luci-app-frps=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_frpc=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_frps=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_luci-app-nps=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_npc=y$' .config
 
       - name: Download packages
         working-directory: openwrt
@@ -150,9 +151,22 @@ jobs:
           SYSUPGRADE="$(find "$FIRMWARE_DIR" -maxdepth 1 -type f -name '*sysupgrade.bin' -print -quit)"
           test -n "$SYSUPGRADE"
           ROOTFS_SIZE="$(tar -xOf "$SYSUPGRADE" --wildcards '*/root' | wc -c)"
-          ROOTFS_LIMIT="$((56 * 1024 * 1024))"
+          # 64 MiB is the entire NAND rootfs partition, not a safe SquashFS
+          # target. Cap the read-only rootfs at 44 MiB so UBI/rootfs_data has
+          # enough room for persistent OpenClash configuration and logs.
+          ROOTFS_LIMIT="$((44 * 1024 * 1024))"
           echo "Rootfs size: $ROOTFS_SIZE bytes (safety limit: $ROOTFS_LIMIT bytes)"
           test "$ROOTFS_SIZE" -le "$ROOTFS_LIMIT"
+
+          MANIFEST="$(find "$FIRMWARE_DIR" -maxdepth 1 -type f -name '*.manifest' -print -quit)"
+          test -n "$MANIFEST"
+          grep -q '^luci-app-openclash ' "$MANIFEST"
+          grep -q '^mihomo ' "$MANIFEST"
+          grep -q '^v2ray-geoip ' "$MANIFEST"
+          grep -q '^luci-app-minidlna ' "$MANIFEST"
+          grep -q '^luci-app-mwan3 ' "$MANIFEST"
+          grep -q '^luci-app-syncdial ' "$MANIFEST"
+          ! grep -Eq '^(node|luci-app-unblockneteasemusic|frpc|frps|luci-app-frpc|luci-app-frps|npc|luci-app-nps) ' "$MANIFEST"
 
           strings "$SYSUPGRADE" | grep -Fq '"p2w,r619ac-64m"'
           strings "$SYSUPGRADE" | grep -Fq '"p2w,r619ac"'
